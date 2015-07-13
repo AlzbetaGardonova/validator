@@ -27,6 +27,7 @@ import resources_rc
 # Import the code for the dialog
 from gs_validate_dialog import GSValidatorDialog
 import os.path
+from qgis.core import NULL, QgsVectorLayer, QgsField, QgsMapLayerRegistry
 
 from validator import validate
 
@@ -200,7 +201,23 @@ class GSValidator:
         if not os.path.isfile(rulesfile):
             self.__show_input_error(u"Soubor '%s' neexistuje!" % rulesfile)
             return False
-        
+        return True
+
+    def remove_previous_output(self, err_file):
+        """Removes output and layer in TOC created from previous run of this
+        function.
+        """
+        canvas = self.iface.mapCanvas()
+        layers = canvas.layers()
+
+        for i in layers:
+            if i.name() == "output:errors":
+                QgsMapLayerRegistry.instance().removeMapLayer(i.id())
+            else:
+                pass
+        if os.path.isfile(err_file):
+            os.remove(err_file)
+
         return True
 
     def run(self):
@@ -219,5 +236,7 @@ class GSValidator:
 
             checked = self.check_input_values(rulesfile, layer)
             if checked:
+                cleaned = self.remove_previous_output(err_file)
+
                 validate(rulesfile, None, layer, err_file)
-                self.iface.addVectorLayer(err_file, "errors", "ogr") 
+                self.iface.addVectorLayer(err_file, "output:errors", "ogr")

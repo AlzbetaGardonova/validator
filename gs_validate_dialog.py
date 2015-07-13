@@ -23,7 +23,7 @@
 
 import os
 
-from PyQt4 import QtGui, uic
+from PyQt4 import QtGui, uic, QtCore
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'gs_validate_dialog_base.ui'))
@@ -44,9 +44,9 @@ class GSValidatorDialog(QtGui.QDialog, FORM_CLASS):
         self.outputFileButton.clicked.connect(self.createFile)
 
     def selectFile(self):
-        self.rulesFile.setText(QtGui.QFileDialog.getOpenFileName())
+        self.rulesFile.setText(QtGui.QFileDialog.getOpenFileName(self, "Open file with rules (JSON)", QtCore.QDir.homePath(), "JSON file (*.json)"))
 
     def createFile(self):
-        self.outputFile.setText(QtGui.QFileDialog.getSaveFileName())
+        self.outputFile.setText(QtGui.QFileDialog.getSaveFileName(self, "Save errors as *.shp",QtCore.QDir.homePath(),"shapefile (*.shp)"))
 
 

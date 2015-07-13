@@ -16,7 +16,7 @@ from cStringIO import StringIO
 import json
 import re
 import os, sys
-from prettytable import PrettyTable
+
 
 NOT_PROVIDED = u'nezadáno'
 MISSING = u'chybí'
@@ -252,58 +252,33 @@ def merge_errors(old, new):
 
     return old
 
-def write_errors(errors):
-    """Create string with rendered errors
-    """
-
-    columns = ["Feature"]
-    for e in errors:
-        keys = errors[e].keys()
-        for k in keys:
-            if k not in columns:
-                columns.append(k)
-
-    table = PrettyTable(columns)
-
-    for i in errors:
-        row = [i]
-
-        for k in columns[1:]:
-            feature = errors[i]
-            if feature.has_key(k):
-                row.append(feature[k])
-            else:
-                row.append('')
-
-        table.add_row(row)
-
-    return table.get_string()
-
-def output_layer(layer,errors,err_file):
-    """Create new shapefile layer from selected features (with error) and add new attribute "error_desc" where is written name of attribute and type of error
+def output_layer(layer, errors, err_file):
+    """Create new shapefile layer from selected features (with error)
+    and add new attribute "error_desc" where is written name of attribute
+    and type of error
     """
     layer.dataProvider().addAttributes([QgsField('error_desc', QVariant.String)])
     layer.updateFields()
 
     provider = layer.dataProvider()
-    writer = QgsVectorFileWriter( err_file, provider.encoding(), provider.fields(),QGis.WKBPolygon, provider.crs() )
-    layer2 = QgsVectorLayer(err_file,'l1','ogr')     
-    features = layer.selectedFeatures();
-        
+    writer = QgsVectorFileWriter(err_file, provider.encoding(), provider.fields(), QGis.WKBPolygon, provider.crs())
+    layer2 = QgsVectorLayer(err_file, 'l1', 'ogr')
+    features = layer.selectedFeatures()
+
     for feature in features:
         for k in errors.keys():
             if k == feature.id():
                 error = errors[k]
-                text = [];
+                text = []
                 size = len(error)
                 loop_size = list(range(size))
-                for i in loop_size:                    
+                for i in loop_size:
                     key = error.keys()
                     value = error.values()
-                    string = key[i] + " - "+ value[i] 
+                    string = key[i] + " - "+ value[i]
                     text.append(string)
                 all_errors = ', '.join(text)
-                feature['error_desc'] = all_errors 
+                feature['error_desc'] = all_errors
                 layer.updateFeature(feature)
                 writer.addFeature(feature)
                 break
@@ -312,7 +287,7 @@ def output_layer(layer,errors,err_file):
     layer.updateFields()
 
 
-def validate(rulesfile, outputfile, layer,err_file):
+def validate(rulesfile, outputfile, layer, err_file):
     """Validate selected layer with given rules file, make output shapefile with errors
     """
 
@@ -327,19 +302,8 @@ def validate(rulesfile, outputfile, layer,err_file):
 
     if errors:
         layer.setSelectedFeatures(errors.keys())
-        errors_txt = write_errors(errors)
 
-
-        out = None
-        if outputfile and os.path.isfile(outputfile):
-            out = open(outputfile, 'w')
-        else:
-            out = sys.stdout
-        #out.write(errors_txt)
-        
-        output_layer(layer,errors,err_file)
-   
-
+        output_layer(layer, errors, err_file)
 
 def main():
     """Main function, collecting necessary data and running the app
@@ -354,7 +318,8 @@ def main():
     err_file = 'D:/GEOSENSE/TMO/kontrola atributu/vystupy/komunikace2.shp'
     layer = iface.activeLayer()
 
-    validate(rulesfile, outputfile, layer,err_file)
+    validate(rulesfile, outputfile, layer, err_file)
 
 if __name__ == '__console__':
     main()
+    
