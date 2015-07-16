@@ -252,40 +252,60 @@ def merge_errors(old, new):
 
     return old
 
-def output_layer(layer, errors, err_file):
-    """Create new shapefile layer from selected features (with error)
-    and add new attribute "error_desc" where is written name of attribute
-    and type of error
+def output_layer(layer,errors,err_file):
+    """Create new shapefile layer from selected features (with error) and add new attribute "error_desc" where is written name of attribute and type of error
     """
-    layer.dataProvider().addAttributes([QgsField('error_desc', QVariant.String)])
-    layer.updateFields()
 
     provider = layer.dataProvider()
-    writer = QgsVectorFileWriter(err_file, provider.encoding(), provider.fields(), QGis.WKBPolygon, provider.crs())
-    layer2 = QgsVectorLayer(err_file, 'l1', 'ogr')
+
+    fields = provider.fields()
+    fields.append(QgsField('error_desc', QVariant.String))
+    writer = QgsVectorFileWriter( err_file, provider.encoding(), fields ,QGis.WKBPolygon, provider.crs() )
+    layer2 = QgsVectorLayer(err_file,'l1','ogr') 
+    
     features = layer.selectedFeatures()
 
+    layer2.startEditing()
+
+    errors_edit = []   
     for feature in features:
-        for k in errors.keys():
+        for k in errors.keys():            
             if k == feature.id():
                 error = errors[k]
                 text = []
                 size = len(error)
                 loop_size = list(range(size))
-                for i in loop_size:
+                for i in loop_size:                    
                     key = error.keys()
                     value = error.values()
-                    string = key[i] + " - "+ value[i]
+                    string = key[i] + " - "+ value[i] 
                     text.append(string)
                 all_errors = ', '.join(text)
-                feature['error_desc'] = all_errors
-                layer.updateFeature(feature)
+                errors_edit.append(all_errors)
+                            
                 writer.addFeature(feature)
-                break
-    index = provider.fieldNameIndex("error_desc")
-    layer.dataProvider().deleteAttributes([index])
-    layer.updateFields()
+    
+    layer2.commitChanges()
+            
+    return errors_edit
 
+def edit_attribute(errors_edit, err_file):
+    """ Write error in string as new attribute to output layer 
+    """
+    layer = QgsVectorLayer(err_file,'l1','ogr') 
+      
+    layer.startEditing()
+    delka = len(errors_edit)
+    loop_size = list(range(delka))
+
+    for feature in layer.getFeatures():        
+        for position in loop_size:
+            if position == feature.id():
+                feature["error_desc"] = errors_edit[position]
+                layer.updateFeature(feature)
+                break            
+
+    layer.commitChanges()
 
 def validate(rulesfile, outputfile, layer, err_file):
     """Validate selected layer with given rules file, make output shapefile with errors
@@ -303,7 +323,8 @@ def validate(rulesfile, outputfile, layer, err_file):
     if errors:
         layer.setSelectedFeatures(errors.keys())
 
-        output_layer(layer, errors, err_file)
+        errors_edit = output_layer(layer, errors, err_file)
+        edit_attribute(errors_edit,err_file)
 
 def main():
     """Main function, collecting necessary data and running the app
